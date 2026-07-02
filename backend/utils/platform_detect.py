@@ -2,6 +2,7 @@
 Platform detection for backend selection.
 """
 
+import os
 import platform
 import subprocess
 from functools import lru_cache
@@ -76,6 +77,12 @@ def get_backend_type() -> Literal["mlx", "pytorch"]:
     Returns:
         "mlx" on Apple Silicon (if MLX is available and functional), "pytorch" otherwise
     """
+    # VOICEBOX_BACKEND lets users pin the inference backend, e.g. to fall back to
+    # PyTorch/CPU when the MLX Metal path crashes on a given macOS/MLX combo.
+    forced = os.environ.get("VOICEBOX_BACKEND", "").strip().lower()
+    if forced in ("mlx", "pytorch"):
+        return forced  # type: ignore[return-value]  # narrowed by the membership check
+
     if is_apple_silicon():
         try:
             import mlx.core  # noqa: F401 — triggers native lib loading
